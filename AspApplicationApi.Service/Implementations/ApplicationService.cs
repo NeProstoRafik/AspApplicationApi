@@ -21,7 +21,7 @@ namespace AspApplicationApi.Service.Emplementations
         {
             try
             {
-                var client = await _applicationRepository.GetClientId(model.Autor);
+                var client = await _applicationRepository.GetApplicationForClientIdAsync(model.Autor);
                 if (client != null)
                 {
                     return null;
@@ -43,8 +43,9 @@ namespace AspApplicationApi.Service.Emplementations
                     Outline = model.Outline,
                     Id = allApplication.Id,
                 };
+               
+                await _applicationRepository.CreateAsync(allApplication);
                 _logger.LogInformation($"заявка создана");
-                await _applicationRepository.Create(allApplication);
                 return application;
             }
             catch (Exception ex)
@@ -58,7 +59,7 @@ namespace AspApplicationApi.Service.Emplementations
         {
             try
             {
-                var application = await _applicationRepository.Get(id);
+                var application = await _applicationRepository.GetAsync(id);
               
                 if (application == null || application.Submit == true)
                 {
@@ -66,8 +67,9 @@ namespace AspApplicationApi.Service.Emplementations
                     return false;
                 }
                 await _applicationRepository.Delete(application);
-                return true;
                 _logger.LogInformation($"заявка удаленна");
+                return true;
+             
 
             }
             catch (Exception ex)
@@ -81,8 +83,8 @@ namespace AspApplicationApi.Service.Emplementations
         {
             try
             {
-                _logger.LogInformation($"заявка получена по ИД");
-                var application = await _applicationRepository.Get(id);
+               
+                var application = await _applicationRepository.GetAsync(id);
                 var app = new ApplicationResponce
                 {
                     Id = application.Id,
@@ -92,7 +94,7 @@ namespace AspApplicationApi.Service.Emplementations
                     Outline = application.Outline,
                     Type = application.Type,
                 };
-
+                _logger.LogInformation($"заявка получена по ИД");
                 return app;
             }
             catch (Exception ex)
@@ -106,7 +108,7 @@ namespace AspApplicationApi.Service.Emplementations
         {
             try
             {
-                var application = await _applicationRepository.Get(id);
+                var application = await _applicationRepository.GetAsync(id);
                 if (application == null || application.Submit==true)
                 {
                     _logger.LogInformation($"заявку нельзя изменять");
@@ -115,8 +117,9 @@ namespace AspApplicationApi.Service.Emplementations
                 application.Name = model.Name;
                 application.Description = model.Description;
                 application.Outline = model.Outline;
-                _logger.LogInformation($"заявка обновлена");
+              
                 await _applicationRepository.Update(application);
+                _logger.LogInformation($"заявка обновлена");
                 var appResponce = new ApplicationResponce
                 {
                     Description = application.Description,
@@ -139,7 +142,7 @@ namespace AspApplicationApi.Service.Emplementations
         {
             try
             {
-                var application = await _applicationRepository.Get(id);
+                var application = await _applicationRepository.GetAsync(id);
                 if (application==null)
                 {
                     return false;
@@ -154,7 +157,7 @@ namespace AspApplicationApi.Service.Emplementations
                 _logger.LogInformation($"заявка не обновлена");
                 return false;
             }
-            return false;
+         
         }
 
         public async Task<List<ApplicationResponce>> GetApplicationsAfterDate(DateTime date)
@@ -162,7 +165,7 @@ namespace AspApplicationApi.Service.Emplementations
             var listApplications = new List<ApplicationResponce>();
             try
             {
-                var list = await _applicationRepository.GetApplicationsAfterDate(date);
+                var list = await _applicationRepository.GetApplicationsAfterDateAsync(date);
                        
                 foreach (var app in list)
                 {
@@ -189,7 +192,7 @@ namespace AspApplicationApi.Service.Emplementations
             var listApplications = new List<ApplicationResponce>();
             try
             {
-                var list = await _applicationRepository.UnsubmittedOlder(date);
+                var list = await _applicationRepository.UnsubmittedOlderAsync(date);
 
                 foreach (var app in list)
                 {
@@ -202,8 +205,9 @@ namespace AspApplicationApi.Service.Emplementations
                     application.Type = app.Type;
                     listApplications.Add(application);
                 }
-                return listApplications;
                 _logger.LogInformation($"заявки до даты и не отправленные");
+                return listApplications;
+            
             }
             catch (Exception ex)
             {

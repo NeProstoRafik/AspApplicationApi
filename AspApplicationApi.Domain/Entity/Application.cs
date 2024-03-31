@@ -16,7 +16,7 @@ namespace AspApplicationApi.Domain.Entity
         public Enum.Type Type { get; set; }
         [Required]
         public string Name { get; set; }    
-        public string Description { get; set; }
+        public string? Description { get; set; }
         [Required]
         public string Outline { get; set; }
        

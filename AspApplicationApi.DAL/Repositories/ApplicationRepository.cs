@@ -14,7 +14,7 @@ namespace AspApplicationApi.DAL.Repositories
             _context = context;
         }
 
-        public async Task Create(AllApplications entity)
+        public async Task CreateAsync(AllApplications entity)
         {
             await _context.AllApplications.AddAsync(entity);
             await _context.SaveChangesAsync();
@@ -26,11 +26,11 @@ namespace AspApplicationApi.DAL.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<AllApplications> Get(Guid id)
+        public async Task<AllApplications> GetAsync(Guid id)
         {
             return await _context.AllApplications.FirstOrDefaultAsync(x => x.Id == id);
         }
-        public async Task<AllApplications> GetClientId(Guid id)
+        public async Task<AllApplications> GetApplicationForClientIdAsync(Guid id)
         {
             return await _context.AllApplications.Where(x=>x.Submit==false).FirstOrDefaultAsync(x => x.Autor == id);
           
@@ -40,22 +40,17 @@ namespace AspApplicationApi.DAL.Repositories
             _context.AllApplications.Update(entity);
             await _context.SaveChangesAsync();
             return entity;
-        }
-      
-        public async Task<AllApplications> SendToSubmid(AllApplications entity)
+        }      
+       
+        public async Task<List<AllApplications>> GetApplicationsAfterDateAsync(DateTime date)
         {
-            _context.AllApplications.Update(entity);
-            await _context.SaveChangesAsync();
-            return entity;
-        }
-        public async Task<List<AllApplications>> GetApplicationsAfterDate(DateTime date)
-        {
-            return await _context.AllApplications.Where(a => a.DateTime > date).ToListAsync();
+            return await _context.AllApplications.Where(a => a.DateTime > date.ToUniversalTime())
+                .Where(x => x.Submit == true).ToListAsync();
            
         }
-        public async Task<List<AllApplications>> UnsubmittedOlder(DateTime date)
+        public async Task<List<AllApplications>> UnsubmittedOlderAsync(DateTime date)
         {
-            return await _context.AllApplications.Where(a => a.DateTime < date)
+            return await _context.AllApplications.Where(a => a.DateTime < date.ToUniversalTime())
                 .Where(x=>x.Submit==false).ToListAsync();
         }
     }

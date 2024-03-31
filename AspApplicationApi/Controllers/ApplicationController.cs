@@ -14,7 +14,7 @@ namespace AspApplicationApi.Controllers
             _applicationService = applicationService;
         }
 
-        [HttpPost("model")]
+        [HttpPost("create")]
         public async Task<ActionResult<ApplicationResponce>> Create(ApplicationDTO model)
         {
             var result = await _applicationService.Create(model);
@@ -25,7 +25,7 @@ namespace AspApplicationApi.Controllers
             return result;
         }
 
-        [HttpPut("{id}/update")]
+        [HttpPut("/update/{id}")]
         public async Task<ActionResult<ApplicationResponce>> Update(Guid id, ApplicationDTOUpdate model)
         {
             var res = await _applicationService.Update(id, model);
@@ -62,7 +62,7 @@ namespace AspApplicationApi.Controllers
 
         }
 
-        [HttpPost("{id}/submid")]
+        [HttpPost("/submid/{id}")]
         public async Task<IActionResult> Submid(Guid id)
         {
             var res = await _applicationService.UpdateSubmid(id);

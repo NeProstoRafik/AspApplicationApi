@@ -13,7 +13,7 @@ namespace AspApplicationApi.Controllers
             _clientService = clientService;
         }
 
-        [HttpGet("{id}/client")]
+        [HttpGet("/client/{id}")]
         public async Task<ActionResult<ApplicationResponce>> GetByClient(Guid id)
         {
             var res = await _clientService.GetUnSubmit(id);
