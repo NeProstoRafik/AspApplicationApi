@@ -85,6 +85,10 @@ namespace AspApplicationApi.Service.Emplementations
             {
                
                 var application = await _applicationRepository.GetAsync(id);
+                if (application==null)
+                {
+                    return null;
+                }
                 var app = new ApplicationResponce
                 {
                     Id = application.Id,
