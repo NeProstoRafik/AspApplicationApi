@@ -1,117 +1,90 @@
-﻿using AspApplicationApi.Domain.Entity;
-using AspApplicationApi.Domain.ViewModel;
-using AspApplicationApi.Service.Interfaces;
+﻿using AspApplication.Application.BaseResponse;
+using AspApplication.Application.Contracts;
+using AspApplication.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AspApplicationApi.Controllers
+namespace AspApplicationApi.Controllers;
+
+public class ApplicationController : Controller
 {
-    public class ApplicationController : Controller
+    private readonly IApplicationService _applicationService;
+
+    public ApplicationController(IApplicationService applicationService)
     {
-        private readonly IApplicationService _applicationService;
+        _applicationService = applicationService;
+    }
 
-        public ApplicationController(IApplicationService applicationService)
+    [HttpPost("create")]
+    public async Task<ActionResult<ApplicationResponce>> Create([FromBody] ApplicationDTO model)
+    {
+        var result = await _applicationService.Create(model);
+        return HandleResponse(result);
+    }
+
+    [HttpPut("/update/{id}")]
+    public async Task<ActionResult<ApplicationResponce>> Update(Guid id, [FromBody] ApplicationDTOUpdate model)
+    {
+        var result = await _applicationService.Update(id, model);
+        return HandleResponse(result);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var result = await _applicationService.Delete(id);
+        return HandleResponseWithOutBody(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApplicationResponce>> GetById(Guid id)
+    {
+        var result = await _applicationService.Get(id);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("/submit/{id}")]
+    public async Task<IActionResult> Submit(Guid id)
+    {
+        var result = await _applicationService.UpdateSubmit(id);
+        return HandleResponseWithOutBody(result);
+    }
+
+    [HttpGet("get-after-date-or-unsubmitted-older")]
+    public async Task<ActionResult<List<ApplicationResponce>>> GetApplicationsAfterDateOrUnsubmittedOlder([FromQuery] DateTime? submittedAfter, [FromQuery] DateTime? unsubmittedOlder)
+    {
+        if (submittedAfter != null && unsubmittedOlder != null)
         {
-            _applicationService = applicationService;
+            return BadRequest("не заполняйте оба параметра");
         }
 
-        [HttpPost("create")]
-        public async Task<ActionResult<ApplicationResponce>> Create(ApplicationDTO model)
+        if (submittedAfter != null)
         {
-            var result = await _applicationService.Create(model);
-            if (result == null)
-            {
-                return NotFound();
-            }
-            return result;
+            var result = await _applicationService.GetApplicationsAfterDate((DateTime)submittedAfter);
+            return HandleResponseList(result);
         }
-
-        [HttpPut("/update/{id}")]
-        public async Task<ActionResult<ApplicationResponce>> Update(Guid id, ApplicationDTOUpdate model)
+        else if (unsubmittedOlder != null)
         {
-            var res = await _applicationService.Update(id, model);
-            if (res==null)
-            {
-                return BadRequest();
-            }
-            return res;
+            var resOlder = await _applicationService.UnsubmittedOlder((DateTime)unsubmittedOlder);
+            return HandleResponseList(resOlder);
         }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
+        else
         {
-           var responce= await _applicationService.Delete(id);
-            if (responce==true)
-            {
-                return Ok();
-            }
-            return BadRequest();
-
+            return BadRequest("Invalid parameters");
         }
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ApplicationResponce>> GetById(Guid id)
-        {
-            var res = await _applicationService.Get(id);
-            if (res is not null)
-            {
-                return res;
-            }
-            else
-            {
-                return NotFound();
-            }
+    }
 
-        }
+    private ActionResult<List<ApplicationResponce>> HandleResponseList(Response<List<ApplicationResponce>> response)
+    {
+        return response.StatusCode == AspApplication.Domain.Enum.StatusCode.OK ? Ok(response.Data) : BadRequest(response.Errors);
+    }
 
-        [HttpPost("/submid/{id}")]
-        public async Task<IActionResult> Submid(Guid id)
-        {
-            var res = await _applicationService.UpdateSubmid(id);
-            if (res == true)
-            {
-                return Ok();
-            }
-            else
-            {
-                return NotFound();
-            }
+    private ActionResult<ApplicationResponce> HandleResponse(Response<ApplicationResponce> response)
+    {
+        return response.StatusCode == AspApplication.Domain.Enum.StatusCode.OK ? Ok(response.Data) : BadRequest(response.Errors);
+    }
 
-        }
-
-        [HttpGet("GetAfterDateOrUnsubmittedOlder")]
-        public async Task<ActionResult<List<ApplicationResponce>>> GetApplicationsAfterDateOrUnsubmittedOlder(DateTime? submittedAfter, DateTime? unsubmittedOlder )
-        {
-            if (submittedAfter!= null && unsubmittedOlder != null)
-            {
-                return BadRequest();
-            }
-            if (submittedAfter !=null)
-            {
-                var res = await _applicationService.GetApplicationsAfterDate((DateTime)submittedAfter);
-                if (res is not null)
-                {
-                    return res;
-                }
-                else
-                {
-                    return NotFound();
-                }
-            }
-
-            if (unsubmittedOlder != null)
-            {
-                var resOlder = await _applicationService.UnsubmittedOlder((DateTime)unsubmittedOlder);
-                if (resOlder is not null)
-            {
-                    return resOlder;
-                }
-            else
-                {
-                    return NotFound();
-                }
-            }
-
-            return BadRequest();
-        }
-                
+    private ActionResult HandleResponseWithOutBody(Response response)
+    {
+        return response.StatusCode == AspApplication.Domain.Enum.StatusCode.OK ? Ok() : BadRequest(response.Errors);
     }
 }

@@ -1,43 +1,35 @@
-﻿using AspApplicationApi.DAL.interfaces;
-using AspApplicationApi.DAL.Repositories;
-using AspApplicationApi.Domain.Entity;
-using AspApplicationApi.Domain.ViewModel;
-using AspApplicationApi.Service.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AspApplication.Application.BaseResponse;
+using AspApplication.Application.Contracts;
+using AspApplication.Application.Converter;
+using AspApplication.Application.Interfaces;
+using AspApplication.DataAccess.interfaces;
 
-namespace AspApplicationApi.Service.Emplementations
+namespace AspApplication.Application.Implementations;
+
+public class ClientService : IClientService
 {
-    public class ClientService : IClientService
+    private readonly IClientRepository _clientRepository;
+
+
+    public ClientService(IClientRepository clientRepository)
     {
-        private readonly IClientRepository _clientRepository;
-        private ILogger<ClientService> _logger;
+        _clientRepository = clientRepository;
+    }
 
-        public ClientService(IClientRepository clientRepository, ILogger<ClientService> logger = null)
+    public async Task<Response<ApplicationResponce>> GetUnsubmit(Guid client)
+    {
+        var baseResponse = new Response<ApplicationResponce>();
+        var application = await _clientRepository.GetUnsubmit(client);
+        if (application == null)
         {
-            _clientRepository = clientRepository;
-            _logger = logger;
+            baseResponse.StatusCode = AspApplication.Domain.Enum.StatusCode.NotFound;
+            baseResponse.Errors = "Автор не найден или у него нет заявок";
+            return baseResponse;
         }
-
-        public async Task<ApplicationResponce> GetUnSubmit(Guid client)
-        {
-            try
-            {
-                _logger.LogInformation($"вывод заявок по ИД");
-
-                var application = await _clientRepository.GetUnSubmit(client);
-                return application;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation($"у докладчика нет заявок или нет клиента");
-            }
-            return null;
-        }
+        var applicationResponce = ApplicationConverter.ConvertToApplicationResponse(application);
+        
+        baseResponse.StatusCode = AspApplication.Domain.Enum.StatusCode.OK;
+        baseResponse.Data = applicationResponce;
+        return baseResponse;
     }
 }
