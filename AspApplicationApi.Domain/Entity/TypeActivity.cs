@@ -1,9 +1,8 @@
-﻿namespace AspApplicationApi.Domain.Entity
+﻿namespace AspApplication.Domain.Entity;
+
+public class TypeActivity
 {
-    public class TypeActivity
-    {
-        public string Activity { get; set; }
-        public string Description { get; set; }
-    }
- 
+    public string Activity { get; set; }=string.Empty;
+    public string Description { get; set; }= string.Empty;
 }
+

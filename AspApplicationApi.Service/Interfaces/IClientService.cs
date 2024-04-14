@@ -1,15 +1,9 @@
-﻿using AspApplicationApi.Domain.Entity;
-using AspApplicationApi.Domain.ViewModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AspApplication.Application.BaseResponse;
+using AspApplication.Application.Contracts;
 
-namespace AspApplicationApi.Service.Interfaces
+namespace AspApplication.Application.Interfaces;
+
+public interface IClientService
 {
-    public interface IClientService
-    {
-        Task<ApplicationResponce> GetUnSubmit(Guid client);
-    }
+    Task<Response<ApplicationResponce>> GetUnsubmit(Guid client);
 }

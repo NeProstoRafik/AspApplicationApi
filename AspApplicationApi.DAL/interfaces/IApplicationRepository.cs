@@ -1,21 +1,16 @@
-﻿using System;
+﻿using AspApplication.Domain.Entity;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using AspApplicationApi.Domain.Entity;
 
+namespace AspApplication.DataAccess.interfaces;
 
-namespace AspApplicationApi.DAL.interfaces
+public interface IApplicationRepository
 {
-    public interface IApplicationRepository
-    {
-        Task CreateAsync(AllApplications entity);
-        Task<AllApplications> GetAsync(Guid id); 						  
-        Task Delete(AllApplications entity);
-        Task<AllApplications> Update(AllApplications entity);            
-        Task<List<AllApplications>> GetApplicationsAfterDateAsync(DateTime date);
-        Task<List<AllApplications>> UnsubmittedOlderAsync(DateTime date);
-        Task<AllApplications> GetApplicationForClientIdAsync(Guid id);
-    }
+    Task CreateAsync(Application entity);
+    Task<Application?> GetAsync(Guid id); 						  
+    Task Delete(Application entity);
+    Task<Application> Update(Application entity);            
+    Task<List<Application>> GetApplicationsAfterDateAsync(DateTime date);
+    Task<List<Application>> UnsubmittedOlderAsync(DateTime date);
+    Task<Application> GetApplicationForClientIdAsync(Guid id);
 }

@@ -1,21 +1,16 @@
-﻿using AspApplicationApi.Domain.Entity;
-using AspApplicationApi.Domain.ViewModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AspApplication.Application.BaseResponse;
+using AspApplication.Application.Contracts;
 
-namespace AspApplicationApi.Service.Interfaces
+
+namespace AspApplication.Application.Interfaces;
+
+public interface IApplicationService
 {
-    public interface IApplicationService
-    {
-        Task<ApplicationResponce> Create(ApplicationDTO model);
-        Task<bool> Delete(Guid id);
-        Task<ApplicationResponce> Update(Guid id, ApplicationDTOUpdate model);
-        Task<ApplicationResponce> Get(Guid id);
-        Task<bool> UpdateSubmid(Guid id);
-        Task<List<ApplicationResponce>> GetApplicationsAfterDate(DateTime date);
-        Task<List<ApplicationResponce>> UnsubmittedOlder(DateTime date);
-    }
+    Task<Response<ApplicationResponce>> Create(ApplicationDTO model);
+    Task<Response> Delete(Guid id);
+    Task<Response<ApplicationResponce>> Update(Guid id, ApplicationDTOUpdate model);
+    Task<Response<ApplicationResponce>> Get(Guid id);
+    Task<Response> UpdateSubmit(Guid id);
+    Task<Response<List<ApplicationResponce>>> GetApplicationsAfterDate(DateTime date);
+    Task<Response<List<ApplicationResponce>>> UnsubmittedOlder(DateTime date);
 }

@@ -1,25 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace AspApplicationApi.Domain.Entity
+namespace AspApplication.Domain.Entity;
+public class Application
 {
-    public class Application
-    {
-        [Required]
-        public Guid Autor { get; set; }
-        [Required]
-        public Enum.Type Type { get; set; }
-        [Required]
-        public string Name { get; set; }    
-        public string? Description { get; set; }
-        [Required]
-        public string Outline { get; set; }
-       
-      
-    }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Autor { get; set; }
+    public Enum.ActivityType? Type { get; set; }
+    [MaxLength(100)]
+    public string? Name { get; set; }
+    [MaxLength(300)]
+    public string? Description { get; set; }
+    [MaxLength(1000)]
+    public string? Outline { get; set; }
+    public DateTime DateTime { get; set; } = DateTime.UtcNow;
+    public bool Submit { get; set; } = false;
 }

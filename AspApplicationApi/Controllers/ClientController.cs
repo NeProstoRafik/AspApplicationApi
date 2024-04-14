@@ -1,31 +1,29 @@
-﻿using AspApplicationApi.Domain.ViewModel;
-using AspApplicationApi.Service.Interfaces;
+﻿
+using AspApplication.Application.Contracts;
+using AspApplication.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AspApplicationApi.Controllers
+namespace AspApplicationApi.Controllers;
+
+public class ClientController : Controller
 {
-    public class ClientController : Controller
+    private readonly IClientService _clientService;
+
+    public ClientController(IClientService clientService)
     {
-        private readonly IClientService _clientService;
+        _clientService = clientService;
+    }
 
-        public ClientController(IClientService clientService)
-        {
-            _clientService = clientService;
-        }
+    [HttpGet("/client/{id}")]
+    
+    public async Task<ActionResult<ApplicationResponce>> GetByClient(Guid id)
+    {
+        var res = await _clientService.GetUnsubmit(id);
 
-        [HttpGet("/client/{id}")]
-        public async Task<ActionResult<ApplicationResponce>> GetByClient(Guid id)
-        {
-            var res = await _clientService.GetUnSubmit(id);
-            if (res is not null)
-            {
-                return res;
-            }
-            else
-            {
-                return NotFound();
-            }
-
-        }
+        if (res.StatusCode== AspApplication.Domain.Enum.StatusCode.OK)
+        {          
+            return res.Data;
+        }       
+            return BadRequest(res.Errors);       
     }
 }
