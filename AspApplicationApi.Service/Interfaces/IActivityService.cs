@@ -1,14 +1,8 @@
-﻿using AspApplicationApi.Domain.Entity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AspApplication.Domain.Entity;
 
-namespace AspApplicationApi.Service.Interfaces
+namespace AspApplication.Application.Interfaces;
+
+public interface IActivityService
 {
-    public interface IActivityService
-    {
-        List<TypeActivity> GetAllActivity();
-    }
+    List<TypeActivity> GetAllActivity();
 }

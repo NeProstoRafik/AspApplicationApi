@@ -1,223 +1,209 @@
-﻿using AspApplicationApi.DAL.interfaces;
-using AspApplicationApi.Domain.Entity;
-using AspApplicationApi.Domain.ViewModel;
-using AspApplicationApi.Service.Interfaces;
-using Microsoft.Extensions.Logging;
-using static System.Net.Mime.MediaTypeNames;
+﻿using AspApplication.Application.BaseResponse;
+using AspApplication.Application.Contracts;
+using AspApplication.Application.Converter;
+using AspApplication.Application.Interfaces;
+using AspApplication.DataAccess.interfaces;
+using FluentValidation;
 
-namespace AspApplicationApi.Service.Emplementations
+namespace AspApplication.Application.Implementations;
+
+public class ApplicationService : IApplicationService
 {
-    public class ApplicationService : IApplicationService
+    private readonly IApplicationRepository _applicationRepository;
+    private readonly IValidator<ApplicationDTO> _validatorCreate;
+    private readonly IValidator<ApplicationDTOUpdate> _validatorUpdate;
+    private readonly IValidator<AspApplication.Domain.Entity.Application> _validatorSubmit;
+
+    public ApplicationService(IApplicationRepository applicationRepository, IValidator<ApplicationDTO> validatorCreate, IValidator<ApplicationDTOUpdate> validatorUpdate, IValidator<Domain.Entity.Application> validatorSubmit)
     {
-        private readonly IApplicationRepository _applicationRepository;
-        private ILogger<ApplicationService> _logger;
-        public ApplicationService(IApplicationRepository applicationRepository, ILogger<ApplicationService> logger)
+        _applicationRepository = applicationRepository;
+        _validatorCreate = validatorCreate;
+        _validatorUpdate = validatorUpdate;
+        _validatorSubmit = validatorSubmit;
+    }
+
+    public async Task<Response<ApplicationResponce>> Create(ApplicationDTO model)
+    {
+        var baseResponse = new Response<ApplicationResponce>();
+        var result = _validatorCreate.Validate(model);
+        if (result.IsValid is false)
         {
-            _applicationRepository = applicationRepository;
-            _logger = logger;
+            baseResponse.Errors = result.ToString();
+            return baseResponse;
+        }
+        var client = await _applicationRepository.GetApplicationForClientIdAsync(model.Author);
+
+        if (client != null)
+        {
+            baseResponse.StatusCode = AspApplication.Domain.Enum.StatusCode.BadRequest;
+            baseResponse.Errors = "у пользователя может быть только одна не отправленная заявка";
+            return baseResponse;
+        }
+        var allApplication = ApplicationConverter.ConvertToApplication(model);
+        var application = ApplicationConverter.ConvertToApplicationResponse(allApplication);
+
+        await _applicationRepository.CreateAsync(allApplication);
+        SetOkAndDataResponse(application, baseResponse);
+
+        return baseResponse;
+    }
+
+    public async Task<Response> Delete(Guid id)
+    {
+        var application = await _applicationRepository.GetAsync(id);
+        var baseResponse = new Response();
+        if (application == null)
+        {
+            baseResponse.StatusCode = Domain.Enum.StatusCode.NotFound;
+            baseResponse.Errors = "Заявка не найдена";
+            return baseResponse;
+        }
+        if (application.Submit == true)
+        {
+            baseResponse.StatusCode = Domain.Enum.StatusCode.BadRequest;
+            baseResponse.Errors = "нельзя отменить / удалить заявки отправленные на рассмотрение";
+            return baseResponse;
+        }
+        await _applicationRepository.Delete(application);
+        baseResponse.StatusCode = Domain.Enum.StatusCode.OK;
+
+        return baseResponse;
+    }
+
+    public async Task<Response<ApplicationResponce>> Get(Guid id)
+    {
+        var application = await _applicationRepository.GetAsync(id);
+        var baseResponse = new Response<ApplicationResponce>();
+        if (application == null)
+        {
+            baseResponse.StatusCode = Domain.Enum.StatusCode.NotFound;
+            baseResponse.Errors = "Заявка не найдена";
+            return baseResponse;
+        }
+        var app = ApplicationConverter.ConvertToApplicationResponse(application);
+
+        SetOkAndDataResponse(app, baseResponse);
+        return baseResponse;
+    }
+
+    public async Task<Response<ApplicationResponce>> Update(Guid id, ApplicationDTOUpdate model)
+    {
+        var baseResponse = new Response<ApplicationResponce>();
+        var result = _validatorUpdate.Validate(model);
+        if (result.IsValid is false)
+        {
+            baseResponse.Errors = result.ToString();
+            return baseResponse;
         }
 
-        public async Task<ApplicationResponce> Create(ApplicationDTO model)
+        var application = await _applicationRepository.GetAsync(id);
+        if (application == null)
         {
-            try
-            {
-                var client = await _applicationRepository.GetApplicationForClientIdAsync(model.Autor);
-                if (client != null)
-                {
-                    return null;
-                }
-                var allApplication = new AllApplications()
-                {
-                    Autor = model.Autor,
-                    Type = model.Type,
-                    Description = model.Description,
-                    Name = model.Name,
-                    Outline = model.Outline,
-                };
-                var application = new ApplicationResponce()
-                {
-                    Autor = model.Autor,
-                    Type = model.Type,
-                    Description = model.Description,
-                    Name = model.Name,
-                    Outline = model.Outline,
-                    Id = allApplication.Id,
-                };
-               
-                await _applicationRepository.CreateAsync(allApplication);
-                _logger.LogInformation($"заявка создана");
-                return application;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation($"не создалась");
-            }
-            return null;
+            baseResponse.StatusCode = Domain.Enum.StatusCode.NotFound;
+            baseResponse.Errors = "Заявка не найдена";
+            return baseResponse;
         }
 
-        public async Task<bool> Delete(Guid id)
+        if (application.Submit == true)
         {
-            try
-            {
-                var application = await _applicationRepository.GetAsync(id);
-              
-                if (application == null || application.Submit == true)
-                {
-                    _logger.LogInformation($"заявку нельзя удалять");
-                    return false;
-                }
-                await _applicationRepository.Delete(application);
-                _logger.LogInformation($"заявка удаленна");
-                return true;
-             
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation($"ошибка удаления");
-            }
-            return false;
+            baseResponse.StatusCode = Domain.Enum.StatusCode.BadRequest;
+            baseResponse.Errors = "нельзя редактировать отправленные на рассмотрение заявки";
+            return baseResponse;
         }
 
-        public async Task<ApplicationResponce> Get(Guid id)
+        application.Name = model.Name;
+        application.Description = model.Description;
+        application.Outline = model.Outline;
+        application.Type = model.Type;
+
+        await _applicationRepository.Update(application);
+
+        var appResponse = ApplicationConverter.ConvertToApplicationResponse(application);
+        SetOkAndDataResponse(appResponse, baseResponse);
+
+        return baseResponse;
+    }
+
+    public async Task<Response> UpdateSubmit(Guid id)
+    {
+        var baseResponse = new Response();
+        var application = await _applicationRepository.GetAsync(id);
+        if (application == null)
         {
-            try
-            {
-               
-                var application = await _applicationRepository.GetAsync(id);
-                if (application==null)
-                {
-                    return null;
-                }
-                var app = new ApplicationResponce
-                {
-                    Id = application.Id,
-                    Description = application.Description,
-                    Name = application.Name,
-                    Autor = application.Autor,
-                    Outline = application.Outline,
-                    Type = application.Type,
-                };
-                _logger.LogInformation($"заявка получена по ИД");
-                return app;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation($"заявка не сущесвтует");
-            }
-            return null;
+            baseResponse.StatusCode = Domain.Enum.StatusCode.NotFound;
+            baseResponse.Errors = "Заявка не найдена";
+            return baseResponse;
         }
 
-        public async Task<ApplicationResponce> Update(Guid id, ApplicationDTOUpdate model)
+        var result = _validatorSubmit.Validate(application);
+        if (result.IsValid is false)
         {
-            try
-            {
-                var application = await _applicationRepository.GetAsync(id);
-                if (application == null || application.Submit==true)
-                {
-                    _logger.LogInformation($"заявку нельзя изменять");
-                    return null;
-                }
-                application.Name = model.Name;
-                application.Description = model.Description;
-                application.Outline = model.Outline;
-              
-                await _applicationRepository.Update(application);
-                _logger.LogInformation($"заявка обновлена");
-                var appResponce = new ApplicationResponce
-                {
-                    Description = application.Description,
-                    Autor = application.Autor,
-                    Id = id,
-                    Name = model.Name,
-                    Outline = model.Outline,
-                    Type = application.Type,
-                };
-                return appResponce;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation($"заявка не обновлена");
-            }
-            return null;
+            baseResponse.Errors = result.ToString();
+            return baseResponse;
         }
 
-        public async Task<bool> UpdateSubmid(Guid id)
+        application.Submit = true;
+        await _applicationRepository.Update(application);
+        baseResponse.StatusCode = Domain.Enum.StatusCode.OK;
+
+        return baseResponse;
+    }
+
+    public async Task<Response<List<ApplicationResponce>>> GetApplicationsAfterDate(DateTime date)
+    {
+        var listApplications = new List<ApplicationResponce>();
+        var baseResponse = new Response<List<ApplicationResponce>>();
+        var list = await _applicationRepository.GetApplicationsAfterDateAsync(date);
+        if (list == null || list.Count == 0)
         {
-            try
-            {
-                var application = await _applicationRepository.GetAsync(id);
-                if (application==null)
-                {
-                    return false;
-                }
-                application.Submit = true;
-                await _applicationRepository.Update(application);
-                _logger.LogInformation($"заявка получила одобрение");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation($"заявка не обновлена");
-                return false;
-            }
-         
+            baseResponse.StatusCode = Domain.Enum.StatusCode.NotFound;
+            baseResponse.Errors = "Заявки не найдена";
+            return baseResponse;
         }
 
-        public async Task<List<ApplicationResponce>> GetApplicationsAfterDate(DateTime date)
+        foreach (var app in list)
         {
-            var listApplications = new List<ApplicationResponce>();
-            try
-            {
-                var list = await _applicationRepository.GetApplicationsAfterDateAsync(date);
-                       
-                foreach (var app in list)
-                {
-                    var application = new ApplicationResponce();
-                    application.Autor = app.Autor;
-                    application.Id = app.Id;
-                    application.Name = app.Name;
-                    application.Outline = app.Outline;
-                    application.Description = app.Description;
-                    application.Type = app.Type;
-                    listApplications.Add(application);
-                }
-                return listApplications;
-                _logger.LogInformation($"все заявки после даты");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation($"нет заявок");
-            }
-            return listApplications;
+            var application = ApplicationConverter.ConvertToApplicationResponse(app);
+            listApplications.Add(application);
         }
-        public async Task<List<ApplicationResponce>> UnsubmittedOlder(DateTime date)
-        {
-            var listApplications = new List<ApplicationResponce>();
-            try
-            {
-                var list = await _applicationRepository.UnsubmittedOlderAsync(date);
 
-                foreach (var app in list)
-                {
-                    var application = new ApplicationResponce();
-                    application.Autor = app.Autor;
-                    application.Id = app.Id;
-                    application.Name = app.Name;
-                    application.Description = app.Description;
-                    application.Outline = app.Outline;
-                    application.Type = app.Type;
-                    listApplications.Add(application);
-                }
-                _logger.LogInformation($"заявки до даты и не отправленные");
-                return listApplications;
-            
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation($"нет заявок");
-            }
-            return listApplications;
+        SetOkAndDataListResponse(listApplications, baseResponse);
+
+        return baseResponse;
+    }
+
+    public async Task<Response<List<ApplicationResponce>>> UnsubmittedOlder(DateTime date)
+    {
+        var baseResponse = new Response<List<ApplicationResponce>>();
+        var listApplications = new List<ApplicationResponce>();
+
+        var list = await _applicationRepository.UnsubmittedOlderAsync(date);
+        if (list == null || list.Count == 0)
+        {
+            baseResponse.StatusCode = Domain.Enum.StatusCode.NotFound;
+            baseResponse.Errors = "Заявки не найдена";
+            return baseResponse;
         }
+
+        foreach (var app in list)
+        {
+            var application = ApplicationConverter.ConvertToApplicationResponse(app);
+            listApplications.Add(application);
+        }
+        SetOkAndDataListResponse(listApplications, baseResponse);
+
+        return baseResponse;
+    }
+
+    private void SetOkAndDataResponse(ApplicationResponce appResponce, Response<ApplicationResponce> response)
+    {
+        response.StatusCode = Domain.Enum.StatusCode.OK;
+        response.Data = appResponce;
+    }
+
+    private void SetOkAndDataListResponse(List<ApplicationResponce> listappResponce, Response<List<ApplicationResponce>> response)
+    {
+        response.StatusCode = Domain.Enum.StatusCode.OK;
+        response.Data = listappResponce;
     }
 }

@@ -1,20 +1,13 @@
-﻿using AspApplicationApi.Domain.Entity;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.EntityFrameworkCore;
 
-namespace AspApplicationApi.DAL
+namespace AspApplication.DataAccess;
+
+public class ApplicationDbContext : DbContext
 {
-    public class ApplicationDbContext : DbContext
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-        {
-          
-        }
-        public DbSet<AllApplications> AllApplications { get; set; }
-        
-    }
+      
+    }    
+    public DbSet<AspApplication.Domain.Entity.Application> AllApplications { get; set; }
+    
 }

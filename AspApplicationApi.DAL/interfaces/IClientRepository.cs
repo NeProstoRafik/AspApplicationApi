@@ -1,15 +1,8 @@
-﻿using AspApplicationApi.Domain.Entity;
-using AspApplicationApi.Domain.ViewModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AspApplication.Domain.Entity;
 
-namespace AspApplicationApi.DAL.interfaces
+namespace AspApplication.DataAccess.interfaces;
+
+public interface IClientRepository
 {
-    public interface IClientRepository
-    {
-        Task<ApplicationResponce> GetUnSubmit(Guid id);
-    }
+    Task<Application?> GetUnsubmit(Guid id);
 }
